@@ -27,9 +27,12 @@ def run():
         print(f"  Brief generated ({len(brief)} chars)")
 
         # 3. Publish
-        print("  Publishing to Notion...")
-        url = publish_to_notion(client_name, brief)
-        print(f"  Published: {url}")
+                try:
+            print("  Publishing to Notion...")
+            url = publish_to_notion(client_name, brief)
+            print(f"  Published: {url}")
+        except Exception as e:
+            print(f"  ERROR publishing {client_name}: {e}")
 
     print("\nDone!")
 
