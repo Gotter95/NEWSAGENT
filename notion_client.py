@@ -48,8 +48,8 @@ def publish_to_notion(client_name: str, brief: str) -> str:
 
     resp = httpx.post(
         "https://api.notion.com/v1/pages", headers=HEADERS, json=payload
-    )    if resp.status_code != 200:
+    )
+    if resp.status_code != 200:
         print(f"  Notion API error {resp.status_code}: {resp.text}")
-
     resp.raise_for_status()
     return resp.json().get("url", "Published (no URL returned)")

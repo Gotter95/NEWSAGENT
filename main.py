@@ -27,7 +27,7 @@ def run():
         print(f"  Brief generated ({len(brief)} chars)")
 
         # 3. Publish
-                try:
+        try:
             print("  Publishing to Notion...")
             url = publish_to_notion(client_name, brief)
             print(f"  Published: {url}")
