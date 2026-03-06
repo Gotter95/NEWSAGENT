@@ -21,20 +21,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run news agent
-        id: run_agent
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
-        run: |
-          python -u main.py > /tmp/output.log 2>&1 || echo "exit_code=$?" >> "$GITHUB_OUTPUT"
-          cat /tmp/output.log
-
-      - name: Report error to issue
-        if: steps.run_agent.outputs.exit_code != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ERROR_LOG=$(cat /tmp/output.log | tail -50)
-          gh issue create --title "Workflow run failed" --body "$(echo '```'; echo "$ERROR_LOG"; echo '```')" || true
+        run: python -u main.py
