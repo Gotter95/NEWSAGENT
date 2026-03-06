@@ -34,7 +34,7 @@ def analyze_articles(articles: list[dict], client_name: str, industry: str) -> d
                 "content": (
                     f"You are a newsletter curator for {client_name} "
                     f"(industry: {industry}).\n\n"
-                    f"Analyze these articles and produce a DETAILED newsletter brief.\n\n"
+                    f"Group these articles by topic and produce a structured brief.\n\n"
                     f"You MUST respond with valid JSON only (no markdown fences, no extra text). "
                     f"Use this exact structure:\n"
                     f'{{\n'
@@ -42,27 +42,27 @@ def analyze_articles(articles: list[dict], client_name: str, industry: str) -> d
                     f'  "intro": "A 2-3 sentence overview of this edition.",\n'
                     f'  "sections": [\n'
                     f'    {{\n'
-                    f'      "heading": "Insight title",\n'
-                    f'      "body": "A DETAILED 5-8 sentence deep-dive into this insight. Reference specific data, quotes, and facts from the articles. Mention the source by name inline (e.g. According to [Source Title](url)...).",\n'
-                    f'      "why_it_matters": "3-4 sentences on why this matters for {client_name} and what they should do about it.",\n'
-                    f'      "sources": [\n'
-                    f'        {{"title": "Article title", "url": "https://...", "type": "article"}}\n'
+                    f'      "heading": "Topic title",\n'
+                    f'      "summary": "2-3 sentence summary of this topic.",\n'
+                    f'      "articles": [\n'
+                    f'        {{\n'
+                    f'          "title": "Exact article title",\n'
+                    f'          "url": "https://exact-url-from-source",\n'
+                    f'          "type": "article",\n'
+                    f'          "excerpt": "A 3-5 sentence excerpt of the most important/interesting content from this article. Pull actual facts, data, quotes, and key points directly from the article content."\n'
+                    f'        }}\n'
                     f'      ]\n'
                     f'    }}\n'
-                    f'  ],\n'
-                    f'  "video_links": [\n'
-                    f'    {{"title": "Video title", "url": "https://youtube.com/..."}}\n'
                     f'  ],\n'
                     f'  "action_items": ["Specific action item 1", "Specific action item 2"]\n'
                     f'}}\n\n'
                     f"IMPORTANT RULES:\n"
-                    f"- Include 4-6 sections with LONG, DETAILED body text (5-8 sentences each).\n"
-                    f"- In the body, reference sources by name and include their URLs inline using markdown link syntax.\n"
-                    f"- Every source MUST include the real URL from the articles provided.\n"
-                    f"- For each source, set type to \"video\" if the URL is YouTube or Vimeo, otherwise \"article\".\n"
-                    f"- Collect ALL YouTube/Vimeo video URLs from the articles into the video_links array.\n"
-                    f"- Action items should be specific and actionable, not generic.\n"
-                    f"- Write in a professional but engaging tone.\n\n"
+                    f"- Group related articles together under topic sections (3-5 sections).\n"
+                    f"- EVERY article must appear in exactly one section.\n"
+                    f"- For each article, the excerpt MUST contain real content pulled from the article — key facts, data, quotes, insights. NOT a generic summary.\n"
+                    f"- Use the EXACT title and URL from each article. Do NOT make up URLs.\n"
+                    f"- Set type to \"video\" if the URL contains youtube.com, youtu.be, or vimeo.com. Otherwise \"article\".\n"
+                    f"- The summary is just a brief 2-3 sentence topic intro. The articles and excerpts are the main content.\n\n"
                     f"Articles:\n{articles_text}"
                 ),
             }

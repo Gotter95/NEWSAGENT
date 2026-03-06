@@ -71,33 +71,39 @@ def _build_rich_blocks(brief: dict) -> list[dict]:
         # Section heading
         blocks.append(_text_block("heading_2", section.get("heading", "")))
 
-        # Body
-        if body := section.get("body"):
-            blocks.append(_text_block("paragraph", body))
-
-        # Why it matters — callout block
-        if why := section.get("why_it_matters"):
+        # Topic summary (short intro)
+        if summary := section.get("summary"):
             blocks.append({
                 "object": "block",
                 "type": "callout",
                 "callout": {
-                    "rich_text": [{"type": "text", "text": {"content": why[:2000]}}],
+                    "rich_text": [{"type": "text", "text": {"content": summary[:2000]}}],
                     "icon": {"type": "emoji", "emoji": "\U0001f4a1"},
                 },
             })
 
-        # Source links
-        for source in section.get("sources", []):
-            url = source.get("url", "")
-            source_type = source.get("type", "article")
+        # Articles — the main content
+        for article in section.get("articles", []):
+            url = article.get("url", "")
+            title = article.get("title", "Untitled")
+            excerpt = article.get("excerpt", "")
+            art_type = article.get("type", "article")
 
-            if source_type == "video" and "youtube.com" in url:
+            # Article title as heading
+            blocks.append(_text_block("heading_3", title))
+
+            # Article excerpt (the real content)
+            if excerpt:
+                blocks.append(_text_block("paragraph", excerpt))
+
+            # Embed video or show bookmark for the source
+            if art_type == "video" and url and ("youtube.com" in url or "youtu.be" in url):
                 blocks.append({
                     "object": "block",
                     "type": "video",
                     "video": {"type": "external", "external": {"url": url}},
                 })
-            elif source_type == "video":
+            elif art_type == "video" and url:
                 blocks.append({
                     "object": "block",
                     "type": "embed",
@@ -109,31 +115,6 @@ def _build_rich_blocks(brief: dict) -> list[dict]:
                     "type": "bookmark",
                     "bookmark": {"url": url},
                 })
-
-    # Video links section
-    video_links = brief.get("video_links", [])
-    if video_links:
-        blocks.append({"object": "block", "type": "divider", "divider": {}})
-        blocks.append(_text_block("heading_2", "Videos & Media"))
-        for vid in video_links:
-            vid_url = vid.get("url", "")
-            if vid_url:
-                # Add title as text
-                if vid_title := vid.get("title"):
-                    blocks.append(_text_block("paragraph", f"▶ {vid_title}"))
-                # Embed the video
-                if "youtube.com" in vid_url or "youtu.be" in vid_url:
-                    blocks.append({
-                        "object": "block",
-                        "type": "video",
-                        "video": {"type": "external", "external": {"url": vid_url}},
-                    })
-                else:
-                    blocks.append({
-                        "object": "block",
-                        "type": "embed",
-                        "embed": {"url": vid_url},
-                    })
 
     # Action items
     action_items = brief.get("action_items", [])
