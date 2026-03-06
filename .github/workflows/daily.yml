@@ -1,8 +1,8 @@
-name: Daily Newsletter Agent
+name: Weekly Newsletter Agent
 
 on:
   schedule:
-    - cron: "0 13 * * 1-5"   # 8 AM EST, weekdays
+    - cron: "0 13 * * 1"     # Every Monday at 8 AM EST
   workflow_dispatch:           # manual trigger
 
 jobs:
