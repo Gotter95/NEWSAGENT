@@ -37,7 +37,7 @@ async def create_weekly_page(briefing: dict, client_name: str) -> str:
         "properties": {
             "title": [{"text": {"content": title}}],
         },
-        "children": children,
+        "children": children[:100],
     }
 
     async with httpx.AsyncClient(timeout=30) as http:
@@ -56,7 +56,6 @@ async def create_weekly_page(briefing: dict, client_name: str) -> str:
     print(f"  Created Notion page: {page_url}")
 
     # Notion limits children to 100 blocks per request.
-    # If we have overflow, append in batches.
     if len(children) > 100:
         overflow = children[100:]
         for i in range(0, len(overflow), 100):
@@ -75,104 +74,90 @@ def _build_blocks(briefing: dict) -> list[dict]:
     """Convert the briefing JSON into Notion block objects."""
     blocks = []
 
-    # --- Signal Alerts (highest priority — prominent voices on this industry) ---
-    signals = briefing.get("signal_alerts", [])
+    # --- SIGNALS ---
+    signals = briefing.get("signals", [])
     if signals:
-        blocks.append(_heading1("Signal Alerts"))
-        blocks.append(_paragraph(
-            "Statements from prominent leaders about your industry. "
-            "These are high-signal, time-sensitive, and ideal for reactive content."
+        blocks.append(_heading1("SIGNALS — What prominent people said this week"))
+        blocks.append(_callout(
+            "These are high-priority. A tech leader or major figure said something "
+            "relevant to your industry. React to these first."
         ))
 
         for signal in signals:
-            speaker = signal.get("speaker", "Unknown")
-            title = signal.get("title", "")
-            quote = signal.get("quote", "")
-            source = signal.get("source", "")
-            url = signal.get("url", "")
+            headline = signal.get("headline", "")
+            who = signal.get("who", "")
+            what = signal.get("what_they_said", "")
+            url = signal.get("source_url", "")
+            source = signal.get("source_name", "")
             date = signal.get("date", "")
-            why = signal.get("why_it_matters", "")
-            angles = signal.get("content_angles", [])
+            why = signal.get("why_this_matters", "")
+            play = signal.get("the_play", "")
 
-            blocks.append(_heading2(f"{speaker}: {title}"))
-            blocks.append(_paragraph(f"Source: {source} | Date: {date}"))
+            blocks.append(_heading2(headline))
+            blocks.append(_paragraph(f"{who} — {source}, {date}"))
+
             if url:
                 blocks.append(_bookmark(url))
-            if quote:
-                blocks.append(_quote(quote))
+
+            if what:
+                blocks.append(_quote(what))
+
             if why:
                 blocks.append(_paragraph(f"Why it matters: {why}"))
-            if angles:
-                blocks.append(_heading3("Content Angles"))
-                for angle in angles:
-                    blocks.append(_bulleted_list_item(angle))
+
+            if play:
+                blocks.append(_heading3("THE PLAY"))
+                blocks.append(_callout(play))
+
             blocks.append(_divider())
 
-    # --- Top Articles ---
-    articles = briefing.get("articles", [])
-    if articles:
-        # Sort by relevance score descending
-        articles.sort(key=lambda a: a.get("relevance_score", 0), reverse=True)
+    # --- STORIES ---
+    stories = briefing.get("stories", [])
+    if stories:
+        blocks.append(_heading1("STORIES — News worth posting about"))
 
-        blocks.append(_heading1("Top Articles This Week"))
+        for story in stories:
+            headline = story.get("headline", "")
+            url = story.get("source_url", "")
+            source = story.get("source_name", "")
+            date = story.get("date", "")
+            one_line = story.get("one_line", "")
+            stat = story.get("key_stat_or_quote", "")
+            play = story.get("the_play", "")
 
-        for i, article in enumerate(articles, 1):
-            title = article.get("title", "Untitled")
-            source = article.get("source", "")
-            url = article.get("url", "")
-            date = article.get("date", "")
-            summary = article.get("summary", "")
-            score = article.get("relevance_score", "?")
-            quotes = article.get("key_quotes", [])
-            angles = article.get("content_angles", [])
+            blocks.append(_heading2(headline))
+            blocks.append(_paragraph(f"{source}, {date}"))
 
-            # Article heading with link
-            has_video = article.get("has_video", False)
-            video_tag = " [VIDEO]" if has_video else ""
-            blocks.append(_heading2(f"{i}. {title}{video_tag}"))
-
-            # Metadata line
-            meta = f"Source: {source} | Date: {date} | Relevance: {score}/10"
-            blocks.append(_paragraph(meta))
-
-            # Link
             if url:
                 blocks.append(_bookmark(url))
 
-            # Summary
-            blocks.append(_paragraph(summary))
+            if one_line:
+                blocks.append(_paragraph(one_line))
 
-            # Key quotes
-            if quotes:
-                blocks.append(_heading3("Key Quotes"))
-                for quote in quotes:
-                    blocks.append(_quote(quote))
+            if stat:
+                blocks.append(_quote(stat))
 
-            # Content angles
-            if angles:
-                blocks.append(_heading3("Content Angles"))
-                for angle in angles:
-                    blocks.append(_bulleted_list_item(angle))
+            if play:
+                blocks.append(_heading3("THE PLAY"))
+                blocks.append(_callout(play))
 
             blocks.append(_divider())
 
-    # --- Content Opportunities ---
-    opportunities = briefing.get("content_opportunities", [])
-    if opportunities:
-        blocks.append(_heading1("Content Opportunities"))
+    # --- POST IDEAS ---
+    post_ideas = briefing.get("post_ideas", [])
+    if post_ideas:
+        blocks.append(_heading1("READY-TO-GO POST IDEAS"))
 
-        for opp in opportunities:
-            idea = opp.get("idea", "")
-            fmt = opp.get("format", "")
-            angle = opp.get("angle", "")
+        for i, idea in enumerate(post_ideas, 1):
+            hook = idea.get("hook", "")
+            angle = idea.get("angle", "")
+            fmt = idea.get("format", "text")
 
-            blocks.append(_heading3(f"{idea} [{fmt}]"))
-            blocks.append(_paragraph(angle))
-
-            source_articles = opp.get("source_articles", [])
-            if source_articles:
-                for sa in source_articles:
-                    blocks.append(_bulleted_list_item(sa))
+            blocks.append(_heading3(f"Idea {i} [{fmt.upper()}]"))
+            if hook:
+                blocks.append(_callout(f"Hook: {hook}"))
+            if angle:
+                blocks.append(_paragraph(f"Angle: {angle}"))
 
     return blocks
 
@@ -226,6 +211,17 @@ def _quote(text: str) -> dict:
         "object": "block",
         "type": "quote",
         "quote": {"rich_text": [{"type": "text", "text": {"content": text[:2000]}}]},
+    }
+
+
+def _callout(text: str) -> dict:
+    return {
+        "object": "block",
+        "type": "callout",
+        "callout": {
+            "rich_text": [{"type": "text", "text": {"content": text[:2000]}}],
+            "icon": {"type": "emoji", "emoji": "💡"},
+        },
     }
 
 
