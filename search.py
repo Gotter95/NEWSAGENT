@@ -1,6 +1,11 @@
 """
 Web search module using Tavily API.
 Fetches recent news articles for a given client's industry.
+
+Search strategy: SIGNAL-FIRST
+- Priority 1: Tech leaders / prominent people saying things about the client's industry
+- Priority 2: Major disruptions, shifts, or data points in the industry
+- Priority 3: General industry news (limited)
 """
 
 import httpx
@@ -32,39 +37,36 @@ async def search_news(client: ClientConfig) -> list[dict]:
 
 def _build_queries(client: ClientConfig) -> list[str]:
     """
-    Build a set of search queries from the client config.
-    Combines industry context with specific keywords and entities.
+    Build search queries with SIGNAL-FIRST priority.
+    Most queries target prominent people talking about the industry,
+    not the industry talking about itself.
     """
     queries = []
 
-    # Broad industry query
-    queries.append(f"{client.industry} news this week")
-
-    # Keyword-based queries (group 2-3 keywords per query for breadth)
-    for i in range(0, len(client.keywords), 2):
-        chunk = client.keywords[i : i + 2]
-        queries.append(" ".join(chunk) + " news")
-
-    # Entity-specific queries
+    # --- TIER 1: Signal queries (tech leaders + industry) ---
+    # These are the most valuable: prominent people commenting on this industry
     for entity in client.entities:
-        queries.append(f"{entity} latest news")
+        # Direct: "Dario Amodei consulting" / "Sam Altman knowledge workers"
+        queries.append(f'"{entity}" {client.industry}')
+        # Quote-style: catch interviews, blog posts, keynotes
+        queries.append(f'"{entity}" AI replacing {client.industry}')
 
-    # Cross-cutting disruption queries: entity + industry (catches tech leaders
-    # talking about this client's industry, e.g. "Dario Amodei consulting")
-    for entity in client.entities:
-        queries.append(f"{entity} {client.industry}")
+    # Broader signal queries
+    queries.append(f"CEO says AI will replace {client.industry}")
+    queries.append(f"tech leader {client.industry} disruption AI")
+    queries.append(f"AI automation threat {client.industry} future")
 
-    # Source-specific queries for preferred outlets
-    if client.preferred_sources:
-        source_sites = " OR ".join(
-            f"site:{s}" for s in client.preferred_sources[:5]
-        )
-        queries.append(f"{client.industry} AI ({source_sites})")
+    # --- TIER 2: High-value keyword queries ---
+    # Only use the most signal-rich keywords, not generic ones
+    for kw in client.keywords:
+        queries.append(f"{kw} 2026")
 
-    # Video-focused queries to surface interviews, talks, and clips
-    queries.append(f"{client.industry} interview video this week")
+    # --- TIER 3: Interview/podcast sources (where leaders actually talk) ---
     for entity in client.entities[:5]:
-        queries.append(f"{entity} interview OR podcast OR video OR talk")
+        queries.append(f'"{entity}" interview podcast 2026')
+
+    # --- TIER 4: Minimal broad industry (just 1-2 queries) ---
+    queries.append(f"{client.industry} AI disruption news this week")
 
     return queries
 
@@ -98,8 +100,6 @@ async def _tavily_search(
 
     results = []
     for item in data.get("results", []):
-        # Use raw_content for better date extraction, truncate to avoid
-        # blowing up the Claude prompt (first 3000 chars is enough)
         raw = item.get("raw_content") or ""
         raw_snippet = raw[:3000] if raw else ""
 
