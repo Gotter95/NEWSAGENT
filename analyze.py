@@ -1,105 +1,150 @@
-"""Analyze articles with Claude and produce a newsletter brief."""
+"""
+Claude analysis module.
+Takes raw search results and produces a structured weekly briefing.
+"""
 
 import json
+
 import anthropic
-from config import ANTHROPIC_API_KEY
 
-api_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+from config import ClientConfig, ANTHROPIC_API_KEY, MAX_ARTICLES_PER_REPORT
 
-SYSTEM_PROMPT = (
-    "You are a JSON API that produces newsletter briefs. "
-    "You ONLY output valid JSON. No markdown, no commentary, no extra text. "
-    "Your entire response must be a single JSON object."
-)
+client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-MAX_RETRIES = 2
+ANALYSIS_SYSTEM_PROMPT = """\
+You are a senior content strategist and industry analyst. Your job is to analyze \
+raw news articles and produce a structured weekly intelligence briefing for a \
+content team.
+
+Your output must be valid JSON matching this exact schema:
+
+{
+  "signal_alerts": [
+    {
+      "title": "Descriptive title of the signal",
+      "speaker": "Name and role of the person (e.g. 'Dario Amodei, CEO of Anthropic')",
+      "quote": "The exact quote or close paraphrase",
+      "source": "outlet name",
+      "url": "article URL",
+      "date": "publication date",
+      "why_it_matters": "1-2 sentences on why this is important for the client",
+      "content_angles": ["How the client could respond to or riff on this"]
+    }
+  ],
+  "articles": [
+    {
+      "title": "Article headline",
+      "source": "outlet name",
+      "url": "article URL",
+      "date": "publication date",
+      "summary": "2-3 sentence summary of the article",
+      "key_quotes": ["Direct quote 1", "Direct quote 2"],
+      "content_angles": ["Angle this could be turned into content"],
+      "relevance_score": 9,
+      "has_video": true
+    }
+  ],
+  "content_opportunities": [
+    {
+      "idea": "Content piece idea",
+      "format": "blog/video/social/newsletter",
+      "angle": "Why this is timely and relevant",
+      "source_articles": ["URL1", "URL2"]
+    }
+  ]
+}
+
+Rules:
+
+SIGNAL vs NOISE — THE MOST IMPORTANT RULE:
+- A "signal" is when a PROMINENT PERSON (tech CEO, founder, investor, politician, \
+public intellectual) says something specific about the client's industry. These go \
+in "signal_alerts" and are the MOST VALUABLE part of the briefing.
+- Examples of signals: Dario Amodei says "AI will replace most consulting work", \
+Sam Altman mentions professional services in a blog post, a senator proposes regulation \
+affecting consultants, Jensen Huang discusses knowledge work automation at a keynote.
+- A quote from a tech leader about the client's industry is worth MORE than 10 trade \
+publication articles. ALWAYS surface these prominently in signal_alerts.
+- "Noise" is generic industry coverage (firm hires partner, firm wins contract, generic \
+trend roundup). This goes in "articles" but should never crowd out signals.
+
+DATE ACCURACY:
+- Each article includes a "published_date" field from the search API and a \
+"raw_content_snippet" from the actual page. Extract the real publish date from the \
+raw content (look for date stamps, "Published on", "Updated", byline dates, etc.). \
+If the raw content date conflicts with published_date, trust the raw content. \
+Use YYYY-MM-DD format. If you cannot confidently determine the date, set date to "unknown".
+- Only include articles from the PAST WEEK. Discard anything older or undateable.
+
+OTHER RULES:
+- Rank articles by relevance_score (1-10) to the client's industry.
+- Extract EXACT quotes when available in the article content.
+- Suggest 3-5 concrete content opportunities based on the news. Prioritize content \
+ideas that respond to signals (e.g. "React to Amodei's quote about consultants").
+- Keep summaries punchy and content-team-friendly.
+- Return ONLY valid JSON, no markdown fences or extra text.
+- Set "has_video" to true if the article contains, embeds, or links to a video \
+(YouTube, interview clips, podcast recordings, conference talks, TikTok, etc.). \
+Prioritize articles with video content — they are especially valuable for content \
+repurposing. Look for clues like "watch", "video", "interview", "clip", "youtube.com", \
+"youtu.be", "tiktok.com", "podcast" in the URL or content.
+"""
 
 
-def _build_user_prompt(articles_text: str, client_name: str, industry: str) -> str:
-    return (
-        f"You are a newsletter curator for {client_name} "
-        f"(industry: {industry}).\n\n"
-        f"Group these articles by topic and produce a structured brief.\n\n"
-        f"Respond with ONLY a JSON object using this exact structure:\n"
-        f'{{\n'
-        f'  "headline": "A catchy newsletter headline",\n'
-        f'  "intro": "A 2-3 sentence overview of this edition.",\n'
-        f'  "sections": [\n'
-        f'    {{\n'
-        f'      "heading": "Topic title",\n'
-        f'      "summary": "2-3 sentence summary of this topic.",\n'
-        f'      "articles": [\n'
-        f'        {{\n'
-        f'          "title": "Exact article title",\n'
-        f'          "url": "https://exact-url-from-source",\n'
-        f'          "type": "article",\n'
-        f'          "excerpt": "A 3-5 sentence excerpt of the most important/interesting content from this article. Pull actual facts, data, quotes, and key points directly from the article content."\n'
-        f'        }}\n'
-        f'      ]\n'
-        f'    }}\n'
-        f'  ],\n'
-        f'  "action_items": ["Specific action item 1", "Specific action item 2"]\n'
-        f'}}\n\n'
-        f"IMPORTANT RULES:\n"
-        f"- Group related articles together under topic sections (3-5 sections).\n"
-        f"- EVERY article must appear in exactly one section.\n"
-        f"- For each article, the excerpt MUST contain real content pulled from the article — key facts, data, quotes, insights. NOT a generic summary.\n"
-        f"- Use the EXACT title and URL from each article. Do NOT make up URLs.\n"
-        f'- Set type to "video" if the URL contains youtube.com, youtu.be, or vimeo.com. Otherwise "article".\n'
-        f"- The summary is just a brief 2-3 sentence topic intro. The articles and excerpts are the main content.\n\n"
-        f"Articles:\n{articles_text}"
-    )
-
-
-def _call_claude(articles_text: str, client_name: str, industry: str) -> dict:
-    """Call Claude with prefill to force JSON output. Retries on parse failure."""
-    user_prompt = _build_user_prompt(articles_text, client_name, industry)
-
-    for attempt in range(1, MAX_RETRIES + 1):
-        message = api_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=8192,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": user_prompt},
-                {"role": "assistant", "content": "{"},
-            ],
-        )
-
-        raw_text = "{" + message.content[0].text
-        try:
-            return json.loads(raw_text)
-        except json.JSONDecodeError:
-            print(f"  Warning: JSON parse failed (attempt {attempt}/{MAX_RETRIES})")
-            # Try to extract JSON from the response
-            start = raw_text.find("{")
-            end = raw_text.rfind("}") + 1
-            if start != -1 and end > start:
-                try:
-                    return json.loads(raw_text[start:end])
-                except json.JSONDecodeError:
-                    pass
-
-    print("  ERROR: All JSON parse attempts failed, returning raw text")
-    return raw_text
-
-
-def analyze_articles(articles: list[dict], client_name: str, industry: str) -> dict | str:
-    """Use Claude to summarize articles into a structured newsletter brief.
-
-    Returns a dict (structured JSON) on success, or a raw string as fallback.
+async def analyze_news(
+    articles: list[dict], client_config: ClientConfig
+) -> dict:
+    """
+    Send raw articles to Claude for analysis and structuring.
+    Returns the parsed JSON briefing.
     """
     if not articles:
-        return f"No articles found for {client_name}."
+        return {
+            "articles": [],
+            "content_opportunities": [],
+        }
 
-    articles_text = ""
-    for i, art in enumerate(articles, 1):
-        articles_text += (
-            f"\n---\nArticle {i}\n"
-            f"Title: {art.get('title', 'N/A')}\n"
-            f"URL: {art.get('url', 'N/A')}\n"
-            f"Type: {art.get('content_type', 'article')}\n"
-            f"Content: {art.get('full_content', art.get('content', 'N/A'))}\n"
-        )
+    # Prepare articles for the prompt
+    articles_text = json.dumps(articles, indent=2, default=str)
 
-    return _call_claude(articles_text, client_name, industry)
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    user_prompt = f"""Analyze these raw news search results for my client.
+
+**Today's date:** {today}
+**Client:** {client_config.name}
+**Industry:** {client_config.industry}
+**Key topics they care about:** {', '.join(client_config.keywords)}
+**Key entities to track:** {', '.join(client_config.entities)}
+{f"**Special instructions:** {client_config.focus_note}" if client_config.focus_note else ""}
+
+Here are the raw search results from this week. Each result includes a \
+"raw_content_snippet" — use this to extract the accurate publish date:
+
+{articles_text}
+
+Produce the structured weekly briefing JSON. Include up to {MAX_ARTICLES_PER_REPORT} \
+of the most relevant articles, ranked by relevance score. Discard low-relevance noise."""
+
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        system=ANALYSIS_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    )
+
+    raw_text = response.content[0].text
+
+    try:
+        briefing = json.loads(raw_text)
+    except json.JSONDecodeError:
+        # Try to extract JSON from the response if wrapped in markdown
+        import re
+        match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+        if match:
+            briefing = json.loads(match.group())
+        else:
+            raise ValueError(f"Claude returned non-JSON response:\n{raw_text[:500]}")
+
+    return briefing

@@ -1,0 +1,30 @@
+name: Weekly News Briefing
+
+on:
+  schedule:
+    # Every Monday at 8:00 AM UTC (3:00 AM EST / 12:00 AM PST)
+    - cron: "0 8 * * 1"
+  workflow_dispatch: # Allow manual runs from GitHub UI
+
+jobs:
+  run-news-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt python-dotenv
+
+      - name: Run news agent
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
+        run: python main.py
