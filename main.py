@@ -120,13 +120,19 @@ async def main():
 
     print(f"Running weekly news agent for {len(clients)} client(s)...")
 
+    failures = []
     for client_config in clients:
         try:
             await run_for_client(client_config, dry_run=args.dry_run)
         except Exception as e:
+            failures.append(client_config.name)
             print(f"\n  [ERROR] Failed for {client_config.name}: {e}")
             import traceback
             traceback.print_exc()
+
+    if failures:
+        print(f"\n\nFailed for: {', '.join(failures)}")
+        sys.exit(1)
 
     print("\n\nAll done!")
 
