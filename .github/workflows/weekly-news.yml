@@ -2,9 +2,8 @@ name: Weekly News Briefing
 
 on:
   schedule:
-    # Every Monday at 8:00 AM UTC (3:00 AM EST / 12:00 AM PST)
     - cron: "0 8 * * 1"
-  workflow_dispatch: # Allow manual runs from GitHub UI
+  workflow_dispatch:
 
 jobs:
   run-news-agent:
@@ -19,7 +18,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt python-dotenv
+        run: pip install -r requirements.txt
 
       - name: Run news agent
         env:
@@ -27,4 +26,19 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
-        run: python main.py
+        run: python -u main.py 2>&1 || true
+
+      - name: Test Tavily key
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          python3 -c "
+import httpx, os, json
+resp = httpx.post('https://api.tavily.com/search', json={
+    'api_key': os.environ['TAVILY_API_KEY'],
+    'query': 'test',
+    'max_results': 1,
+})
+print(f'Status: {resp.status_code}')
+print(f'Body: {resp.text[:500]}')
+"
