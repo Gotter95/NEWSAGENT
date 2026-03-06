@@ -34,17 +34,30 @@ CLIENTS = [
             "management consulting",
             "consultancies AI disruption",
             "AI replacing consultants",
+            "AI agents replace knowledge workers",
             "AI tools for consulting",
             "consulting firm strategy",
             "boutique consulting growth",
             "consulting business development",
+            "future of professional services AI",
+            "AI strategy consulting threat",
+            "autonomous AI agents consulting",
         ],
         entities=[
+            # Consulting firms
             "McKinsey",
             "Bain & Company",
             "Boston Consulting Group",
             "Deloitte Consulting",
             "Accenture",
+            # Tech leaders who comment on consulting/knowledge work disruption
+            "Dario Amodei",
+            "Sam Altman",
+            "Satya Nadella",
+            "Sundar Pichai",
+            "Jensen Huang",
+            "Marc Andreessen",
+            "Marc Benioff",
         ],
         preferred_sources=[
             "consultancy.org",
@@ -52,7 +65,26 @@ CLIENTS = [
             "forbes.com",
             "businessinsider.com",
             "cnbc.com",
+            "fortune.com",
+            "ft.com",
+            # Blogs and essay sources
+            "darioamodei.com",
+            "stratechery.com",
+            "every.to",
+            # Podcast/interview transcript sources
+            "dwarkeshpatel.com",
+            "lexfridman.com",
+            "youtube.com",
         ],
+        focus_note=(
+            "CRITICAL: This client needs to know when prominent tech leaders (CEOs, "
+            "founders, AI researchers) make statements about consulting, professional "
+            "services, or knowledge work being disrupted by AI. A single quote from "
+            "Dario Amodei or Sam Altman about consultants is MORE valuable than 10 "
+            "articles from trade publications. Prioritize SIGNAL over NOISE — outside "
+            "voices commenting on the industry are often more important than the "
+            "industry talking about itself."
+        ),
     ),
     ClientConfig(
         name="Logan Gott — Gott Content",

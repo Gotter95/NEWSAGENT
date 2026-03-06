@@ -73,6 +73,39 @@ def _build_blocks(briefing: dict) -> list[dict]:
     """Convert the briefing JSON into Notion block objects."""
     blocks = []
 
+    # --- Signal Alerts (highest priority — prominent voices on this industry) ---
+    signals = briefing.get("signal_alerts", [])
+    if signals:
+        blocks.append(_heading1("Signal Alerts"))
+        blocks.append(_paragraph(
+            "Statements from prominent leaders about your industry. "
+            "These are high-signal, time-sensitive, and ideal for reactive content."
+        ))
+
+        for signal in signals:
+            speaker = signal.get("speaker", "Unknown")
+            title = signal.get("title", "")
+            quote = signal.get("quote", "")
+            source = signal.get("source", "")
+            url = signal.get("url", "")
+            date = signal.get("date", "")
+            why = signal.get("why_it_matters", "")
+            angles = signal.get("content_angles", [])
+
+            blocks.append(_heading2(f"{speaker}: {title}"))
+            blocks.append(_paragraph(f"Source: {source} | Date: {date}"))
+            if url:
+                blocks.append(_bookmark(url))
+            if quote:
+                blocks.append(_quote(quote))
+            if why:
+                blocks.append(_paragraph(f"Why it matters: {why}"))
+            if angles:
+                blocks.append(_heading3("Content Angles"))
+                for angle in angles:
+                    blocks.append(_bulleted_list_item(angle))
+            blocks.append(_divider())
+
     # --- Top Articles ---
     articles = briefing.get("articles", [])
     if articles:

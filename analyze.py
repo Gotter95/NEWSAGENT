@@ -19,6 +19,18 @@ content team.
 Your output must be valid JSON matching this exact schema:
 
 {
+  "signal_alerts": [
+    {
+      "title": "Descriptive title of the signal",
+      "speaker": "Name and role of the person (e.g. 'Dario Amodei, CEO of Anthropic')",
+      "quote": "The exact quote or close paraphrase",
+      "source": "outlet name",
+      "url": "article URL",
+      "date": "publication date",
+      "why_it_matters": "1-2 sentences on why this is important for the client",
+      "content_angles": ["How the client could respond to or riff on this"]
+    }
+  ],
   "articles": [
     {
       "title": "Article headline",
@@ -43,19 +55,36 @@ Your output must be valid JSON matching this exact schema:
 }
 
 Rules:
-- DATE ACCURACY IS CRITICAL. Each article includes a "published_date" field from the \
-search API and a "raw_content_snippet" from the actual page. Extract the real publish \
-date from the raw content (look for date stamps, "Published on", "Updated", byline dates, \
-etc.). If the raw content date conflicts with published_date, trust the raw content. \
+
+SIGNAL vs NOISE — THE MOST IMPORTANT RULE:
+- A "signal" is when a PROMINENT PERSON (tech CEO, founder, investor, politician, \
+public intellectual) says something specific about the client's industry. These go \
+in "signal_alerts" and are the MOST VALUABLE part of the briefing.
+- Examples of signals: Dario Amodei says "AI will replace most consulting work", \
+Sam Altman mentions professional services in a blog post, a senator proposes regulation \
+affecting consultants, Jensen Huang discusses knowledge work automation at a keynote.
+- A quote from a tech leader about the client's industry is worth MORE than 10 trade \
+publication articles. ALWAYS surface these prominently in signal_alerts.
+- "Noise" is generic industry coverage (firm hires partner, firm wins contract, generic \
+trend roundup). This goes in "articles" but should never crowd out signals.
+
+DATE ACCURACY:
+- Each article includes a "published_date" field from the search API and a \
+"raw_content_snippet" from the actual page. Extract the real publish date from the \
+raw content (look for date stamps, "Published on", "Updated", byline dates, etc.). \
+If the raw content date conflicts with published_date, trust the raw content. \
 Use YYYY-MM-DD format. If you cannot confidently determine the date, set date to "unknown".
 - Only include articles from the PAST WEEK. Discard anything older or undateable.
+
+OTHER RULES:
 - Rank articles by relevance_score (1-10) to the client's industry.
 - Extract EXACT quotes when available in the article content.
-- Suggest 3-5 concrete content opportunities based on the news.
+- Suggest 3-5 concrete content opportunities based on the news. Prioritize content \
+ideas that respond to signals (e.g. "React to Amodei's quote about consultants").
 - Keep summaries punchy and content-team-friendly.
 - Return ONLY valid JSON, no markdown fences or extra text.
-- IMPORTANT: Set "has_video" to true if the article contains, embeds, or links to a \
-video (YouTube, interview clips, podcast recordings, conference talks, TikTok, etc.). \
+- Set "has_video" to true if the article contains, embeds, or links to a video \
+(YouTube, interview clips, podcast recordings, conference talks, TikTok, etc.). \
 Prioritize articles with video content — they are especially valuable for content \
 repurposing. Look for clues like "watch", "video", "interview", "clip", "youtube.com", \
 "youtu.be", "tiktok.com", "podcast" in the URL or content.

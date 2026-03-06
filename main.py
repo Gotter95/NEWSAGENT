@@ -60,12 +60,15 @@ async def run_for_client(client_config, dry_run=False):
     print("\n[2/3] Analyzing with Claude...")
     briefing = await analyze_news(articles, client_config)
 
+    signals = briefing.get("signal_alerts", [])
     analyzed_count = len(briefing.get("articles", []))
-    themes = briefing.get("trending_themes", [])
     opportunities = len(briefing.get("content_opportunities", []))
 
+    if signals:
+        print(f"  SIGNALS: {len(signals)} high-priority alert(s)!")
+        for s in signals:
+            print(f"    -> {s.get('speaker', '?')}: {s.get('title', '')}")
     print(f"  Kept {analyzed_count} relevant articles")
-    print(f"  Themes: {', '.join(themes)}")
     print(f"  Content opportunities: {opportunities}")
 
     if dry_run:

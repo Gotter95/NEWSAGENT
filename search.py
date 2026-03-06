@@ -49,9 +49,21 @@ def _build_queries(client: ClientConfig) -> list[str]:
     for entity in client.entities:
         queries.append(f"{entity} latest news")
 
+    # Cross-cutting disruption queries: entity + industry (catches tech leaders
+    # talking about this client's industry, e.g. "Dario Amodei consulting")
+    for entity in client.entities:
+        queries.append(f"{entity} {client.industry}")
+
+    # Source-specific queries for preferred outlets
+    if client.preferred_sources:
+        source_sites = " OR ".join(
+            f"site:{s}" for s in client.preferred_sources[:5]
+        )
+        queries.append(f"{client.industry} AI ({source_sites})")
+
     # Video-focused queries to surface interviews, talks, and clips
     queries.append(f"{client.industry} interview video this week")
-    for entity in client.entities[:3]:  # top 3 entities to limit API calls
+    for entity in client.entities[:5]:
         queries.append(f"{entity} interview OR podcast OR video OR talk")
 
     return queries
