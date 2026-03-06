@@ -20,6 +20,46 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Debug - Test API keys
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
+        run: |
+          python3 -c "
+          import httpx, os
+          print('=== Testing Tavily ===')
+          try:
+              r = httpx.post('https://api.tavily.com/search', json={'api_key': os.environ['TAVILY_API_KEY'], 'query': 'test', 'max_results': 1})
+              print(f'Tavily status: {r.status_code}')
+              print(f'Tavily response: {r.text[:300]}')
+          except Exception as e:
+              print(f'Tavily error: {e}')
+
+          print('=== Testing Anthropic ===')
+          try:
+              import anthropic
+              c = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+              r = c.messages.create(model='claude-sonnet-4-20250514', max_tokens=10, messages=[{'role': 'user', 'content': 'hi'}])
+              print(f'Anthropic: OK - {r.content[0].text}')
+          except Exception as e:
+              print(f'Anthropic error: {e}')
+
+          print('=== Testing Notion ===')
+          try:
+              r = httpx.get('https://api.notion.com/v1/pages/' + os.environ['NOTION_PARENT_PAGE_ID'], headers={'Authorization': 'Bearer ' + os.environ['NOTION_API_KEY'], 'Notion-Version': '2022-06-28'})
+              print(f'Notion status: {r.status_code}')
+              print(f'Notion response: {r.text[:300]}')
+          except Exception as e:
+              print(f'Notion error: {e}')
+
+          print('=== Env check ===')
+          for k in ['TAVILY_API_KEY', 'ANTHROPIC_API_KEY', 'NOTION_API_KEY', 'NOTION_PARENT_PAGE_ID']:
+              v = os.environ.get(k, '')
+              print(f'{k}: {"set" if v else "MISSING"} (len={len(v)}, starts={v[:8]}...)')
+          "
+
       - name: Run news agent
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
