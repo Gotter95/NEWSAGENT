@@ -60,16 +60,16 @@ async def run_for_client(client_config, dry_run=False):
     print("\n[2/3] Analyzing with Claude...")
     briefing = await analyze_news(articles, client_config)
 
-    signals = briefing.get("signal_alerts", [])
-    analyzed_count = len(briefing.get("articles", []))
-    opportunities = len(briefing.get("content_opportunities", []))
+    signals = briefing.get("signals", [])
+    stories = briefing.get("stories", [])
+    post_ideas = briefing.get("post_ideas", [])
 
     if signals:
         print(f"  SIGNALS: {len(signals)} high-priority alert(s)!")
         for s in signals:
-            print(f"    -> {s.get('speaker', '?')}: {s.get('title', '')}")
-    print(f"  Kept {analyzed_count} relevant articles")
-    print(f"  Content opportunities: {opportunities}")
+            print(f"    -> {s.get('who', '?')}: {s.get('headline', '')}")
+    print(f"  Stories: {len(stories)}")
+    print(f"  Post ideas: {len(post_ideas)}")
 
     if dry_run:
         print("\n[DRY RUN] Skipping Notion. Here's the briefing:\n")
