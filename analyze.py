@@ -27,33 +27,42 @@ def analyze_articles(articles: list[dict], client_name: str, industry: str) -> d
 
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=4096,
+        max_tokens=8192,
         messages=[
             {
                 "role": "user",
                 "content": (
                     f"You are a newsletter curator for {client_name} "
                     f"(industry: {industry}).\n\n"
-                    f"Analyze these articles and produce a newsletter brief.\n\n"
+                    f"Analyze these articles and produce a DETAILED newsletter brief.\n\n"
                     f"You MUST respond with valid JSON only (no markdown fences, no extra text). "
                     f"Use this exact structure:\n"
                     f'{{\n'
                     f'  "headline": "A catchy newsletter headline",\n'
+                    f'  "intro": "A 2-3 sentence overview of this edition.",\n'
                     f'  "sections": [\n'
                     f'    {{\n'
                     f'      "heading": "Insight title",\n'
-                    f'      "body": "2-3 sentence explanation of this insight.",\n'
-                    f'      "why_it_matters": "Why this matters for {client_name}.",\n'
+                    f'      "body": "A DETAILED 5-8 sentence deep-dive into this insight. Reference specific data, quotes, and facts from the articles. Mention the source by name inline (e.g. According to [Source Title](url)...).",\n'
+                    f'      "why_it_matters": "3-4 sentences on why this matters for {client_name} and what they should do about it.",\n'
                     f'      "sources": [\n'
                     f'        {{"title": "Article title", "url": "https://...", "type": "article"}}\n'
                     f'      ]\n'
                     f'    }}\n'
                     f'  ],\n'
-                    f'  "action_items": ["Action item 1", "Action item 2"]\n'
+                    f'  "video_links": [\n'
+                    f'    {{"title": "Video title", "url": "https://youtube.com/..."}}\n'
+                    f'  ],\n'
+                    f'  "action_items": ["Specific action item 1", "Specific action item 2"]\n'
                     f'}}\n\n'
-                    f"Include 3-5 sections. For each source, set type to \"video\" if "
-                    f"the URL is a YouTube or Vimeo link, otherwise \"article\".\n"
-                    f"Include the actual source URLs from the articles.\n\n"
+                    f"IMPORTANT RULES:\n"
+                    f"- Include 4-6 sections with LONG, DETAILED body text (5-8 sentences each).\n"
+                    f"- In the body, reference sources by name and include their URLs inline using markdown link syntax.\n"
+                    f"- Every source MUST include the real URL from the articles provided.\n"
+                    f"- For each source, set type to \"video\" if the URL is YouTube or Vimeo, otherwise \"article\".\n"
+                    f"- Collect ALL YouTube/Vimeo video URLs from the articles into the video_links array.\n"
+                    f"- Action items should be specific and actionable, not generic.\n"
+                    f"- Write in a professional but engaging tone.\n\n"
                     f"Articles:\n{articles_text}"
                 ),
             }

@@ -18,9 +18,37 @@ def _text_block(block_type: str, text: str) -> dict:
         "object": "block",
         "type": block_type,
         block_type: {
-            "rich_text": [{"type": "text", "text": {"content": text[:2000]}}]
+            "rich_text": _parse_rich_text(text[:2000])
         },
     }
+
+
+import re
+
+def _parse_rich_text(text: str) -> list[dict]:
+    """Parse markdown-style [text](url) links into Notion rich_text segments."""
+    parts = []
+    last_end = 0
+    for m in re.finditer(r'\[([^\]]+)\]\((https?://[^\)]+)\)', text):
+        # Plain text before the link
+        if m.start() > last_end:
+            parts.append({
+                "type": "text",
+                "text": {"content": text[last_end:m.start()]}
+            })
+        # The link itself
+        parts.append({
+            "type": "text",
+            "text": {"content": m.group(1), "link": {"url": m.group(2)}}
+        })
+        last_end = m.end()
+    # Remaining text after the last link
+    if last_end < len(text):
+        parts.append({
+            "type": "text",
+            "text": {"content": text[last_end:]}
+        })
+    return parts if parts else [{"type": "text", "text": {"content": text}}]
 
 
 def _build_rich_blocks(brief: dict) -> list[dict]:
@@ -30,6 +58,10 @@ def _build_rich_blocks(brief: dict) -> list[dict]:
     # Headline
     if headline := brief.get("headline"):
         blocks.append(_text_block("heading_1", headline))
+
+    # Intro
+    if intro := brief.get("intro"):
+        blocks.append(_text_block("paragraph", intro))
 
     # Sections
     for i, section in enumerate(brief.get("sections", [])):
@@ -77,6 +109,31 @@ def _build_rich_blocks(brief: dict) -> list[dict]:
                     "type": "bookmark",
                     "bookmark": {"url": url},
                 })
+
+    # Video links section
+    video_links = brief.get("video_links", [])
+    if video_links:
+        blocks.append({"object": "block", "type": "divider", "divider": {}})
+        blocks.append(_text_block("heading_2", "Videos & Media"))
+        for vid in video_links:
+            vid_url = vid.get("url", "")
+            if vid_url:
+                # Add title as text
+                if vid_title := vid.get("title"):
+                    blocks.append(_text_block("paragraph", f"▶ {vid_title}"))
+                # Embed the video
+                if "youtube.com" in vid_url or "youtu.be" in vid_url:
+                    blocks.append({
+                        "object": "block",
+                        "type": "video",
+                        "video": {"type": "external", "external": {"url": vid_url}},
+                    })
+                else:
+                    blocks.append({
+                        "object": "block",
+                        "type": "embed",
+                        "embed": {"url": vid_url},
+                    })
 
     # Action items
     action_items = brief.get("action_items", [])

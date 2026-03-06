@@ -26,5 +26,5 @@ def search_articles(query: str, max_results: int = 5) -> list[dict]:
     for r in results:
         r["content_type"] = _detect_content_type(r.get("url", ""))
         raw = r.get("raw_content") or r.get("content", "")
-        r["full_content"] = raw[:4000]
+        r["full_content"] = raw[:6000]
     return results
