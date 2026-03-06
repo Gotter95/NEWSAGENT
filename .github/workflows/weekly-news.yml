@@ -26,19 +26,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
-        run: |
-          python3 -c "
-          import traceback, asyncio, sys
-          sys.path.insert(0, '.')
-          try:
-              from main import main
-              asyncio.run(main())
-          except SystemExit as e:
-              print(f'SystemExit: {e.code}')
-              if e.code != 0:
-                  traceback.print_exc()
-                  sys.exit(e.code)
-          except Exception:
-              traceback.print_exc()
-              sys.exit(1)
-          "
+        run: python -u main.py 2>&1 | tee /tmp/output.log || true
+
+      - name: Upload error log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-output
+          path: /tmp/output.log
+
+      - name: Show output
+        if: always()
+        run: cat /tmp/output.log
