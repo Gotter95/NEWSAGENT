@@ -13,13 +13,18 @@ def run():
         print(f"Processing: {client_name}")
         print(f"{'='*60}")
 
-        # 1. Search
+        # 1. Search (deduplicate by URL)
         all_articles = []
+        seen_urls = set()
         for query in info["queries"]:
             print(f"  Searching: {query}")
             results = search_articles(query)
-            all_articles.extend(results)
-        print(f"  Found {len(all_articles)} articles total")
+            for r in results:
+                url = r.get("url")
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    all_articles.append(r)
+        print(f"  Found {len(all_articles)} unique articles total")
 
         # 2. Analyze
         print("  Analyzing with Claude...")
