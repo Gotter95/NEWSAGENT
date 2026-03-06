@@ -46,6 +46,8 @@ async def create_weekly_page(briefing: dict, client_name: str) -> str:
             headers=_headers(),
             json=payload,
         )
+        if resp.status_code >= 400:
+            print(f"  [error] Notion API returned {resp.status_code}: {resp.text[:500]}")
         resp.raise_for_status()
         data = resp.json()
 
