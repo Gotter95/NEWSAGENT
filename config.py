@@ -88,36 +88,42 @@ CLIENTS = [
     ),
     ClientConfig(
         name="Logan Gott — Gott Content",
-        industry="LinkedIn Content & B2B Copywriting",
+        industry="LinkedIn Content & B2B Lead Generation",
         keywords=[
-            "LinkedIn content strategy",
-            "LinkedIn algorithm changes",
-            "LinkedIn B2B marketing",
-            "AI copywriting tools",
-            "AI content writing",
-            "SaaS content marketing",
-            "B2B thought leadership",
-            "LinkedIn ghostwriting",
-            "AI SaaS marketing trends",
+            "LinkedIn algorithm changes 2026",
+            "LinkedIn organic reach strategy",
+            "LinkedIn ghostwriting business",
+            "LinkedIn lead generation B2B",
+            "LinkedIn content funnel",
+            "AI LinkedIn post writing",
+            "AI replacing B2B copywriters",
+            "LinkedIn social selling",
+            "B2B founder personal brand LinkedIn",
         ],
         entities=[
             "LinkedIn",
             "Jasper AI",
             "Copy.ai",
             "HubSpot",
+            "Justin Welsh",
+            "Lara Acosta",
+            "Alex Hormozi",
         ],
         preferred_sources=[
-            "linkedin.com",
             "socialmediatoday.com",
             "contentmarketinginstitute.com",
             "hbr.org",
             "techcrunch.com",
+            "buffer.com",
         ],
         focus_note=(
-            "This client focuses ONLY on text-based LinkedIn content and B2B copywriting. "
-            "EXCLUDE any articles about UGC, YouTube, video content, TikTok, Instagram Reels, "
-            "or video production. Only include news relevant to written content, LinkedIn strategy, "
-            "SaaS marketing, and AI writing tools."
+            "This client is a LinkedIn content agency that writes posts and builds "
+            "content funnels for B2B founders and SaaS companies. ONLY include articles about: "
+            "LinkedIn (the platform), LinkedIn content/ghostwriting, B2B social selling on LinkedIn, "
+            "AI tools that write LinkedIn posts or social media copy, or founders building personal "
+            "brands on LinkedIn. EXCLUDE: SEO content, blog writing, YouTube, TikTok, Instagram, "
+            "video production, UGC, general 'content marketing' that isn't LinkedIn-specific. "
+            "If an article says 'content' but means blog/SEO/video content, skip it."
         ),
     ),
 ]

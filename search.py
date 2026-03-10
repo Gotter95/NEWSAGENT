@@ -119,21 +119,57 @@ async def _tavily_search(
 
     results = []
     for item in data.get("results", []):
+        url = item.get("url", "")
+
+        # Skip non-article URLs (homepages, category pages, etc.)
+        if not _is_article_url(url):
+            continue
+
         raw = item.get("raw_content") or ""
         raw_snippet = raw[:3000] if raw else ""
 
         results.append(
             {
                 "title": item.get("title", ""),
-                "url": item.get("url", ""),
+                "url": url,
                 "content": item.get("content", ""),
                 "raw_content_snippet": raw_snippet,
                 "published_date": item.get("published_date", ""),
-                "source": _extract_domain(item.get("url", "")),
+                "source": _extract_domain(url),
             }
         )
 
     return results
+
+
+def _is_article_url(url: str) -> bool:
+    """
+    Filter out URLs that are likely homepages or category pages, not individual articles.
+    An article URL typically has a path with multiple segments, a slug, or date components.
+    """
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(url)
+        path = parsed.path.rstrip("/")
+
+        # Reject bare homepages: e.g. https://example.com or https://example.com/
+        if not path or path == "":
+            return False
+
+        # Reject shallow category pages: /news, /blog, /articles, /topics
+        segments = [s for s in path.split("/") if s]
+        if len(segments) == 1 and segments[0] in (
+            "news", "blog", "articles", "topics", "insights", "research",
+            "about", "contact", "careers", "podcasts", "events",
+        ):
+            return False
+
+        # Accept anything with 2+ path segments (likely an article)
+        # e.g. /2026/03/article-slug or /news/article-title
+        return True
+    except Exception:
+        return True  # If we can't parse, let it through
 
 
 def _extract_domain(url: str) -> str:
